@@ -343,11 +343,11 @@ export class BundlingService {
       bundle.maxFeePerGas = gasFee.maxFeePerGas ?? gasFee.gasPrice!;
     }
 
-    if (
-      BigInt(bundle.maxPriorityFeePerGas) > BigInt(gasFee.maxPriorityFeePerGas!)
-    ) {
-      bundle.maxPriorityFeePerGas = gasFee.maxPriorityFeePerGas!;
-    }
+    // if (
+    //   BigInt(bundle.maxPriorityFeePerGas) > BigInt(gasFee.maxPriorityFeePerGas!)
+    // ) {
+    //   bundle.maxPriorityFeePerGas = gasFee.maxPriorityFeePerGas!;
+    // }
 
     return bundle;
   }

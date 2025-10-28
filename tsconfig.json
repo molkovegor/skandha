@@ -2,6 +2,7 @@
   "extends": "./tsconfig.build.json",
   "compilerOptions": {
     "emitDeclarationOnly": false,
+    "sourceMap": true,
     "incremental": false,
     // Required to run benchmark command from root directory
     "typeRoots": ["node_modules/@types", "./types"],

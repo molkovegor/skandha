@@ -186,7 +186,8 @@ export class Eth {
       );
     }
 
-    const { maxFeePerGas, maxPriorityFeePerGas } = gasFee;
+    const { maxFeePerGas } = gasFee;
+    const maxPriorityFeePerGas = BigInt(0);
 
     let paymasterPostOpGasLimit = BigInt(0);
 
@@ -557,7 +558,7 @@ export class Eth {
       validUntil: validUntil ? BigInt(validUntil) : undefined,
       callGasLimit,
       maxFeePerGas: gasFee.maxFeePerGas,
-      maxPriorityFeePerGas: gasFee.maxPriorityFeePerGas,
+      maxPriorityFeePerGas: 0,
     };
   }
 
@@ -608,7 +609,7 @@ export class Eth {
       validUntil: validUntil,
       callGasLimit,
       maxFeePerGas: gasFee.maxFeePerGas,
-      maxPriorityFeePerGas: gasFee.maxPriorityFeePerGas,
+      maxPriorityFeePerGas: 0,
     };
   }
 

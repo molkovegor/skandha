@@ -219,9 +219,9 @@ export class EntryPointV7EventsService {
       });
     }
 
-    setInterval(() => {
-      void this.pollEvents(this.publicClient);
-    }, this.pollingInterval);
+    // setInterval(() => {
+    //   void this.pollEvents(this.publicClient);
+    // }, this.pollingInterval);
   }
 
   async handleEvent(
