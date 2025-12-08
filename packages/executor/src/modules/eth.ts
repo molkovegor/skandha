@@ -24,6 +24,7 @@ import {
   UserOpValidationService,
   MempoolService,
   EntryPointService,
+  BundlingService,
 } from "../services";
 import {
   ExecutionResultAndCallGasLimit,
@@ -57,7 +58,8 @@ export class Eth {
     private config: NetworkConfig,
     private logger: Logger,
     private metrics: PerChainMetrics | null,
-    private getNodeAPI: GetNodeAPI = () => null
+    private getNodeAPI: GetNodeAPI = () => null,
+    private bundlingService: BundlingService
   ) {
     // ["arbitrum", "arbitrumNova"]
     if ([42161, 42170].includes(this.chainId)) {
@@ -713,5 +715,24 @@ export class Eth {
 
   validateEntryPoint(entryPoint: string): boolean {
     return this.entryPointService.isEntryPointSupported(entryPoint);
+  }
+
+  /**
+   * Send a bundled transaction with builder incentive
+   * @param transaction signed raw transaction (tx1) with zero priority fee
+   * @param builderAddress whitelisted builder address for incentive
+   * @returns bundle hash
+   */
+  async sendBundledTransaction(transaction: string, builderAddress: string): Promise<string> {
+    // Validate transaction has zero priority fee
+    if (!transaction || !transaction.startsWith("0x")) {
+      throw new RpcError("Invalid transaction format", RpcErrorCodes.INVALID_REQUEST);
+    }
+
+    if (!builderAddress || !builderAddress.startsWith("0x")) {
+      throw new RpcError("Invalid builder address", RpcErrorCodes.INVALID_REQUEST);
+    }
+
+    return await this.bundlingService.sendTransactionBundle(transaction, builderAddress);
   }
 }

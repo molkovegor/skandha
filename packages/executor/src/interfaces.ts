@@ -198,6 +198,21 @@ export interface NetworkConfig {
   binarySearchMaxRetries: number;
   // native tracer enabled
   nativeTracer: boolean;
+  // consensus client (beacon node) RPC endpoint for slot to block number conversion
+  // e.g., http://localhost:5052
+  consensusClientEndpoint: string;
+  // builder whitelist for transaction bundles
+  builderWhitelist?: string[];
+  // incentive calculation method
+  incentiveCalculationMethod?: "gas_based" | "fixed" | "dynamic";
+  // incentive base amount in wei
+  incentiveBaseAmount?: bigint;
+  // incentive gas multiplier (in basis points, 110 = 1.1x)
+  incentiveGasMultiplier?: bigint;
+  // minimum incentive amount in wei
+  incentiveMinAmount?: bigint;
+  // maximum incentive amount in wei
+  incentiveMaxAmount?: bigint;
 }
 
 export type BundlerConfig = Omit<

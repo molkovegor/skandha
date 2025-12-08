@@ -174,7 +174,8 @@ export class Executor {
       this.networkConfig,
       this.logger,
       this.metrics,
-      this.getNodeApi
+      this.getNodeApi,
+      this.bundlingService
     );
 
     this.p2pService = new P2PService(

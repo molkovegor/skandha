@@ -316,6 +316,12 @@ export class ApiApp {
         case CustomRPCMethods.skandha_userOperationStatus:
           result = await this.skandhaApi.getUserOperationStatus(params[0]);
           break;
+        case CustomRPCMethods.skandha_sendBundledTransaction:
+          result = await this.ethApi.sendBundledTransaction({
+            transaction: params[0],
+            builderAddress: params[1],
+          });
+          break;
         default:
           throw new RpcError(
             `Method ${method} is not supported`,

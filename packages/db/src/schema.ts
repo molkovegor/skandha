@@ -2,6 +2,7 @@
 export enum Namespace {
   userOps = 1,
   peers = 2,
+  transactionBundles = 3,
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

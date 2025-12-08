@@ -1,10 +1,46 @@
 {
   "entryPoints": [
-    "0x9b5d240EF1bc8B4930346599cDDFfBD7d7D56db9"
+    "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
   ],
   "relayers": [
-    "test test test test test test test test test test test junk",
-    "0x0101010101010101010101010101010101010101010101010101010101010101"
+    "PRIVATE_KEY"
   ],
-  "rpcEndpoint": "http://localhost:8545"
+  "rpcEndpoint": "http://85.90.245.205:8545",
+  "rpcEndpointSubmit": "https://relay-sepolia.flashbots.net",
+  "relayingMode": "flashbots",
+  "beneficiary": "0x638cBFc61117D3A34a1d9E22Cbf81Bad038D4f99",
+  "receiptLookupRange": 128,
+  "skipBundleValidation": true
+}
+
+
+{
+  "entryPoints": [
+    "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+  ],
+  "relayers": [
+    "PRIVATE_KEY"
+  ],
+  "rpcEndpoint": "http://85.90.245.205:8545",
+  "rpcEndpointSubmit": "https://relay-sepolia.flashbots.net",
+  "relayingMode": "flashbots",
+  "beneficiary": "0x638cBFc61117D3A34a1d9E22Cbf81Bad038D4f99",
+  "receiptLookupRange": 128,
+  "skipBundleValidation": true
+}
+
+
+# Mainnet
+{
+  "entryPoints": [
+    "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+  ],
+  "relayers": [
+    "PRIVATE_KEY"
+  ],
+  "rpcEndpoint": "https://eth-mainnet.g.alchemy.com/v2/1AXffkhDQ4dGmPqZg1wAX",
+  "rpcEndpointSubmit": "https://eu.rpc.titanbuilder.xyz",
+  "beneficiary": "0x3ea18D20B7f91a7913a286F686298839D3b6d691",
+  "receiptLookupRange": 128,
+  "skipBundleValidation": true
 }

@@ -7,3 +7,12 @@ export enum MempoolEntryStatus {
   Cancelled = 5,
   Reverted = 6,
 }
+
+export enum TransactionBundleStatus {
+  New = 0,
+  Pending = 1,
+  Submitted = 2,
+  OnChain = 3,
+  Cancelled = 4,
+  Reverted = 5,
+}

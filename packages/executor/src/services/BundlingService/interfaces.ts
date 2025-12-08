@@ -8,4 +8,5 @@ export interface IRelayingMode {
   sendBundle(bundle: Bundle): Promise<void>;
   getAvailableRelayersCount(): number;
   canSubmitBundle(): Promise<boolean>;
+  sendTransactionBundle(signedTx1: string, builderAddress: string): Promise<string>;
 }

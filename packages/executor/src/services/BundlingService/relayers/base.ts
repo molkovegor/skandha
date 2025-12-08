@@ -63,6 +63,10 @@ export abstract class BaseRelayer implements IRelayingMode {
     return true;
   }
 
+  sendTransactionBundle(_signedTx1: string, _builderAddress: string): Promise<string> {
+    throw new Error("Method not implemented.");
+  }
+
   /**
    * waits entries to get submitted
    * @param hashes user op hashes array
@@ -79,6 +83,7 @@ export abstract class BaseRelayer implements IRelayingMode {
         retries++;
         for (const entry of entries) {
           const exists = await this.mempoolService.find(entry);
+          this.logger.debug(`Entry ${entry.userOpHash} exists: ${exists ? "true" : "false"}`);
           // if some entry exists in the mempool, it means that the EventService did not delete it yet
           // because that service has not received UserOperationEvent yet
           // so we wait for it to get submitted...
@@ -217,6 +222,7 @@ export abstract class BaseRelayer implements IRelayingMode {
       // some chains, like Bifrost, don't allow setting gasLimit in estimateGas
       await this.publicClient.estimateGas({
         ...txWithoutGasLimit,
+        account: relayer.account!,
         maxFeePerGas: undefined,
         maxPriorityFeePerGas: undefined,
       });

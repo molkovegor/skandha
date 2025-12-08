@@ -487,6 +487,10 @@ export class Config {
         config.nativeTracer || bundlerDefaultConfigs.nativeTracer
       )
     );
+    config.consensusClientEndpoint = fromEnvVar(
+      "CONSENSUS_CLIENT_ENDPOINT",
+      config.consensusClientEndpoint || bundlerDefaultConfigs.consensusClientEndpoint
+    ) as string;
 
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!config.whitelistedEntities) {
@@ -584,6 +588,13 @@ const bundlerDefaultConfigs: BundlerConfig = {
   pimlicoSimulationsContract: "",
   binarySearchMaxRetries: 3,
   nativeTracer: false,
+  consensusClientEndpoint: "",
+  builderWhitelist: [],
+  incentiveCalculationMethod: "gas_based",
+  incentiveBaseAmount: BigInt(0),
+  incentiveGasMultiplier: BigInt(110), // 1.1x
+  incentiveMinAmount: BigInt(0),
+  incentiveMaxAmount: BigInt(0),
 };
 
 function getEnvVar<T>(envVar: string, fallback: T): T | string {

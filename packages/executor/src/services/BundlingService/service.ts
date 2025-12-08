@@ -478,4 +478,19 @@ export class BundlingService {
   private async tryBundle(): Promise<void> {
     await this.sendNextBundle().catch((err) => this.logger.error(err));
   }
+
+  async sendTransactionBundle(signedTx1: string, builderAddress: string): Promise<string> {
+    // Validate builder address whitelist if configured
+    if (this.networkConfig.builderWhitelist && this.networkConfig.builderWhitelist.length > 0) {
+      const isWhitelisted = this.networkConfig.builderWhitelist.some(
+        (addr) => addr.toLowerCase() === builderAddress.toLowerCase()
+      );
+      if (!isWhitelisted) {
+        throw new Error(`Builder address ${builderAddress} is not whitelisted`);
+      }
+    }
+
+    // Submit bundle via relayer
+    return await this.relayer.sendTransactionBundle(signedTx1, builderAddress);
+  }
 }

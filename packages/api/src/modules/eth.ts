@@ -7,6 +7,7 @@ import {
 import { RpcMethodValidator } from "../utils/RpcMethodValidator";
 import { SendUserOperationGasArgs } from "../dto/SendUserOperation.dto";
 import { EstimateUserOperationGasArgs } from "../dto/EstimateUserOperation.dto";
+import { SendBundledTransactionArgs } from "../dto/SendBundledTransaction.dto";
 
 export class EthAPI {
   constructor(private ethModule: Eth) {}
@@ -84,5 +85,15 @@ export class EthAPI {
    */
   async getSupportedEntryPoints(): Promise<string[]> {
     return await this.ethModule.getSupportedEntryPoints();
+  }
+
+  /**
+   * Send a bundled transaction with builder incentive
+   * @param args transaction and builder address
+   * @returns bundle hash
+   */
+  @RpcMethodValidator(SendBundledTransactionArgs)
+  async sendBundledTransaction(args: SendBundledTransactionArgs): Promise<string> {
+    return await this.ethModule.sendBundledTransaction(args.transaction, args.builderAddress);
   }
 }
