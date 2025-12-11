@@ -5,6 +5,7 @@ import {
   MempoolEntryStatus,
   RelayingMode,
   ReputationStatus,
+  TransactionBundleStatus,
 } from "@skandha/types/lib/executor";
 import {
   GasPriceMarkupOne,
@@ -13,7 +14,7 @@ import {
 } from "@skandha/params/lib";
 import { IGetGasFeeResult } from "@skandha/params/lib/gas-price-oracles/oracles";
 import { Mutex } from "async-mutex";
-import { Hex, PublicClient } from "viem";
+import { Hex, PublicClient, parseTransaction, keccak256, hexToBytes } from "viem";
 import { Config } from "../../config";
 import {
   Bundle,
@@ -31,6 +32,8 @@ import { EntryPointService } from "../EntryPointService";
 import { IRelayingMode } from "./interfaces";
 import { ClassicRelayer, RelayerClass, FlashbotsRelayer } from "./relayers";
 import { getUserOpGasLimit } from "./utils";
+import { TransactionBundleService } from "../TransactionBundleService/service";
+import { TransactionBundleEntry } from "../../entities/TransactionBundleEntry";
 
 export class BundlingService {
   private mutex: Mutex;
@@ -53,7 +56,8 @@ export class BundlingService {
     private config: Config,
     private logger: Logger,
     private metrics: PerChainMetrics | null,
-    relayingMode: RelayingMode
+    relayingMode: RelayingMode,
+    private transactionBundleService: TransactionBundleService
   ) {
     this.mutex = new Mutex();
     this.networkConfig = config.getNetworkConfig();
@@ -361,6 +365,7 @@ export class BundlingService {
     }
     this.autoBundlingCron = setInterval(() => {
       void this.tryBundle();
+      void this.sendNextTransactionBundle();
     }, this.autoBundlingInterval);
   }
 
@@ -479,7 +484,11 @@ export class BundlingService {
     await this.sendNextBundle().catch((err) => this.logger.error(err));
   }
 
-  async sendTransactionBundle(signedTx1: string, builderAddress: string): Promise<string> {
+  /**
+   * Add a transaction bundle to the queue (similar to addUserOp)
+   * This creates an entry with status New that will be processed asynchronously
+   */
+  async addTransactionBundle(signedTx1: string, builderAddress: string): Promise<string> {
     // Validate builder address whitelist if configured
     if (this.networkConfig.builderWhitelist && this.networkConfig.builderWhitelist.length > 0) {
       const isWhitelisted = this.networkConfig.builderWhitelist.some(
@@ -490,7 +499,149 @@ export class BundlingService {
       }
     }
 
-    // Submit bundle via relayer
-    return await this.relayer.sendTransactionBundle(signedTx1, builderAddress);
+    // Parse tx1 to get tx1Hash
+    const tx1Hash = keccak256(hexToBytes(signedTx1 as Hex));
+
+    // Create bundle entry with status New (will be processed by async job)
+    // bundleHash will be set after submission when we know the real Flashbots bundleHash
+    const bundleEntry = new TransactionBundleEntry({
+      chainId: this.chainId,
+      bundleHash: "0x", // Placeholder, will be updated with real bundleHash after submission
+      tx1Hash,
+      tx2Hash: "0x", // Will be set after submission
+      builderAddress,
+      signedTx1, // Store signed transaction for later submission
+      status: TransactionBundleStatus.New,
+    });
+    
+    // Add bundle to tracking service
+    await this.transactionBundleService.addBundle(bundleEntry);
+
+    this.logger.debug(
+      `Transaction bundle added to queue: tx1Hash=${tx1Hash}, builderAddress=${builderAddress}`
+    );
+
+    return tx1Hash;
+  }
+
+  /**
+   * Process and submit next transaction bundle (similar to sendNextBundle for userOps)
+   */
+  async sendNextTransactionBundle(): Promise<void> {
+    await this.mutex.runExclusive(async () => {
+      if (!(await this.relayer.canSubmitBundle())) {
+        this.logger.debug("Relayer: Can not submit transaction bundle yet");
+        return;
+      }
+
+      // Get new transaction bundles
+      const bundles = await this.transactionBundleService.getNewBundlesSorted(1);
+      if (!bundles.length) {
+        this.logger.debug("No new transaction bundles");
+        return;
+      }
+
+      // Remove bundles that reached max submit attempts
+      const invalidBundles = bundles.filter(
+        (bundle) => bundle.submitAttempts > this.maxSubmitAttempts
+      );
+      if (invalidBundles.length > 0) {
+        this.logger.debug(
+          `Found ${invalidBundles.length} transaction bundles that reached max submit attempts, cancelling them...`
+        );
+        for (const bundle of invalidBundles) {
+          await this.transactionBundleService.updateStatus(
+            bundle.tx1Hash,
+            TransactionBundleStatus.Cancelled,
+            {
+              revertReason: "Attempted to submit bundle multiple times, but failed...",
+            }
+          );
+        }
+        return;
+      }
+
+      // Process the first bundle
+      const bundle = bundles[0]!;
+      
+      // Update status to Pending
+      await this.transactionBundleService.updateStatus(
+        bundle.tx1Hash,
+        TransactionBundleStatus.Pending
+      );
+      
+      await this.transactionBundleService.attemptToBundle([bundle]);
+
+      this.logger.debug(`Processing transaction bundle: tx1Hash=${bundle.tx1Hash}`);
+      
+      // Submit bundle via relayer
+      try {
+        // Get current block to calculate maxBlock (targetBlock + 10, where targetBlock = currentBlock + 1)
+        const currentBlock = await this.publicClient.getBlockNumber();
+        const targetBlock = currentBlock + BigInt(1);
+        const maxBlock = targetBlock + BigInt(10); // Allow bundle to be included up to 10 blocks after target
+        
+        const result = await this.relayer.sendTransactionBundle(
+          bundle.signedTx1,
+          bundle.builderAddress
+        );
+        
+        // Update bundle with Flashbots bundleHash, tx2Hash, and maxBlock
+        bundle.tx2Hash = result.tx2Hash;
+        bundle.maxBlock = maxBlock;
+        bundle.setStatus(TransactionBundleStatus.Submitted, {
+          bundleHash: result.bundleHash, // Update bundleHash with Flashbots bundleHash
+        });
+        await this.transactionBundleService.update(bundle);
+
+        this.logger.debug(
+          `Transaction bundle submitted: Flashbots bundleHash=${result.bundleHash}, tx1Hash=${bundle.tx1Hash}, tx2Hash=${result.tx2Hash}`
+        );
+      } catch (err: any) {
+        this.logger.error(err, "Failed to submit transaction bundle");
+        // Update status to Cancelled on error
+        await this.transactionBundleService.updateStatus(
+          bundle.tx1Hash,
+          TransactionBundleStatus.Cancelled,
+          { revertReason: err.message || "Failed to submit bundle" }
+        );
+        // Reset status to New to allow retry (similar to userOps)
+        await this.transactionBundleService.updateStatus(
+          bundle.tx1Hash,
+          TransactionBundleStatus.New
+        );
+      }
+    });
+  }
+
+  /**
+   * Submit a transaction bundle (backward compatibility method)
+   * Adds bundle to queue and returns immediately
+   * The bundle will be processed asynchronously by the cron job
+   */
+  async sendTransactionBundle(signedTx1: string, builderAddress: string): Promise<string> {
+    return await this.addTransactionBundle(signedTx1, builderAddress);
+  }
+
+  /**
+   * Update transaction bundle status (e.g., when detected on-chain)
+   * Similar to how userOps status is updated via MempoolService
+   */
+  async updateTransactionBundleStatus(
+    tx1Hash: string,
+    status: TransactionBundleStatus,
+    params?: {
+      bundleHash?: string;
+      revertReason?: string;
+    }
+  ): Promise<void> {
+    await this.transactionBundleService.updateStatus(tx1Hash, status, params);
+  }
+
+  /**
+   * Get transaction bundle by tx1Hash
+   */
+  async getTransactionBundle(tx1Hash: string): Promise<TransactionBundleEntry | null> {
+    return await this.transactionBundleService.getBundleByTx1Hash(tx1Hash);
   }
 }

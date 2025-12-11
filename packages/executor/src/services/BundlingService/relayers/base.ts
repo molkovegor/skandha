@@ -12,7 +12,7 @@ import {
 } from "viem";
 import { Config } from "../../../config";
 import { Bundle, NetworkConfig } from "../../../interfaces";
-import { IRelayingMode, Relayer } from "../interfaces";
+import { IRelayingMode, Relayer, TransactionBundleResult } from "../interfaces";
 import { MempoolEntry } from "../../../entities/MempoolEntry";
 import { now } from "../../../utils";
 import { MempoolService } from "../../MempoolService";
@@ -63,7 +63,7 @@ export abstract class BaseRelayer implements IRelayingMode {
     return true;
   }
 
-  sendTransactionBundle(_signedTx1: string, _builderAddress: string): Promise<string> {
+  sendTransactionBundle(_signedTx1: string, _builderAddress: string): Promise<TransactionBundleResult> {
     throw new Error("Method not implemented.");
   }
 

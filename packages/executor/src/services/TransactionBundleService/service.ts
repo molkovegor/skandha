@@ -4,7 +4,6 @@ import { TransactionBundleStatus } from "@skandha/types/lib/executor";
 import { TransactionBundleEntry } from "../../entities/TransactionBundleEntry";
 import { now } from "../../utils";
 
-// todo integrate with the mempool service and allow flashbots submission flow to track the bundle statuses
 export class TransactionBundleService {
   private BUNDLE_COLLECTION_KEY: string;
   private BUNDLE_HASHES_COLLECTION_PREFIX: string;
@@ -20,22 +19,44 @@ export class TransactionBundleService {
   }
 
   /**
-   * Get bundle by hash
+   * Get bundle by tx1Hash
    */
-  async getBundleByHash(bundleHash: string): Promise<TransactionBundleEntry | null> {
-    const key = await this.db
-      .get<string>(`${this.BUNDLE_HASHES_COLLECTION_PREFIX}${bundleHash}`)
-      .catch(() => null);
-    if (!key) return null;
+  async getBundleByTx1Hash(tx1Hash: string): Promise<TransactionBundleEntry | null> {
+    const key = this.getKeyFromTx1Hash(tx1Hash);
     return this.findByKey(key);
   }
 
   /**
    * Get bundles by status
    */
-  async getBundlesByStatus(status: TransactionBundleStatus): Promise<TransactionBundleEntry[]> {
+  async getBundlesByStatus(status?: TransactionBundleStatus): Promise<TransactionBundleEntry[]> {
     const allBundles = await this.fetchAll();
-    return allBundles.filter((bundle) => bundle.status === status);
+    if (status !== undefined) {
+      return allBundles.filter((bundle) => bundle.status === status);
+    }
+    return allBundles;
+  }
+
+  /**
+   * Get new bundles sorted (similar to getNewEntriesSorted for mempool)
+   */
+  async getNewBundlesSorted(size: number, offset = 0): Promise<TransactionBundleEntry[]> {
+    const allBundles = await this.fetchAll();
+    return allBundles
+      .filter((bundle) => bundle.status === TransactionBundleStatus.New)
+      .sort((a, b) => a.submittedTime - b.submittedTime) // Sort by submission time
+      .slice(offset, offset + size);
+  }
+
+  /**
+   * Attempt to bundle (increment submitAttempts)
+   */
+  async attemptToBundle(entries: TransactionBundleEntry[]): Promise<void> {
+    for (const entry of entries) {
+      entry.submitAttempts++;
+      entry.lastUpdatedTime = now();
+      await this.update(entry);
+    }
   }
 
   /**
@@ -64,16 +85,16 @@ export class TransactionBundleService {
    * Update bundle status
    */
   async updateStatus(
-    bundleHash: string,
+    tx1Hash: string,
     status: TransactionBundleStatus,
     params?: {
-      transaction?: string;
+      bundleHash?: string;
       revertReason?: string;
     }
   ): Promise<void> {
-    const entry = await this.getBundleByHash(bundleHash);
+    const entry = await this.getBundleByTx1Hash(tx1Hash);
     if (!entry) {
-      this.logger.warn(`TransactionBundle: Bundle not found: ${bundleHash}`);
+      this.logger.warn(`TransactionBundle: Bundle not found: tx1Hash=${tx1Hash}`);
       return;
     }
     entry.setStatus(status, params);
@@ -114,7 +135,11 @@ export class TransactionBundleService {
   }
 
   private getKey(entry: TransactionBundleEntry): string {
-    return `${this.chainId}:TXBUNDLE:${entry.bundleHash}`;
+    return this.getKeyFromTx1Hash(entry.tx1Hash);
+  }
+
+  private getKeyFromTx1Hash(tx1Hash: string): string {
+    return `${this.chainId}:TXBUNDLE:${tx1Hash}`;
   }
 
   private async saveBundleHash(bundleHash: string, entry: TransactionBundleEntry): Promise<void> {

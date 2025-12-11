@@ -135,3 +135,24 @@ export type UserOperationStatus = {
   transaction?: string;
   reason?: string;
 };
+
+export type TransactionBundleStatus = {
+  bundleHash: string;
+  tx1Hash: string;
+  tx2Hash: string;
+  builderAddress: string;
+  status: string;
+  reason?: string;
+};
+
+export type TransactionBundleByHashResponse = {
+  bundleHash: string;
+  tx1Hash: string;
+  tx2Hash: string;
+  builderAddress: string;
+  status: string;
+  blockNumber?: bigint;
+  blockHash?: string;
+  transactionHash?: string;
+  flashbotsBundleHash?: string; // The actual Flashbots bundleHash (stored in bundleHash field)
+};

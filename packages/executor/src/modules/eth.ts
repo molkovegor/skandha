@@ -4,6 +4,7 @@ import {
   EstimatedUserOperationGas,
   UserOperationByHashResponse,
   UserOperationReceipt,
+  TransactionBundleByHashResponse,
 } from "@skandha/types/lib/api/interfaces";
 import { IPVGEstimator } from "@skandha/params/lib/types/IPVGEstimator";
 import {
@@ -17,7 +18,7 @@ import { Logger } from "@skandha/types/lib";
 import { PerChainMetrics } from "@skandha/monitoring/lib";
 import { UserOperation } from "@skandha/types/lib/contracts/UserOperation";
 import { UserOperationStruct } from "@skandha/types/lib/contracts/EPv6/EntryPoint";
-import { MempoolEntryStatus } from "@skandha/types/lib/executor";
+import { MempoolEntryStatus, TransactionBundleStatus } from "@skandha/types/lib/executor";
 import { BlockscoutAPI } from "@skandha/utils/lib/third-party";
 import { PublicClient, Hex, GetTransactionReturnType } from "viem";
 import {
@@ -25,6 +26,7 @@ import {
   MempoolService,
   EntryPointService,
   BundlingService,
+  TransactionBundleService,
 } from "../services";
 import {
   ExecutionResultAndCallGasLimit,
@@ -59,7 +61,8 @@ export class Eth {
     private logger: Logger,
     private metrics: PerChainMetrics | null,
     private getNodeAPI: GetNodeAPI = () => null,
-    private bundlingService: BundlingService
+    private bundlingService: BundlingService,
+    private transactionBundleService: TransactionBundleService
   ) {
     // ["arbitrum", "arbitrumNova"]
     if ([42161, 42170].includes(this.chainId)) {
@@ -734,5 +737,48 @@ export class Eth {
     }
 
     return await this.bundlingService.sendTransactionBundle(transaction, builderAddress);
+  }
+
+  /**
+   * Get transaction bundle by tx1Hash (similar to getUserOperationByHash)
+   * @param tx1Hash transaction hash of tx1
+   * @returns transaction bundle information or null if not found
+   */
+  async getTransactionBundleByHash(
+    tx1Hash: string
+  ): Promise<TransactionBundleByHashResponse | null> {
+    // Find bundle by tx1Hash
+    const bundle = await this.transactionBundleService.getBundleByTx1Hash(tx1Hash);
+
+    if (!bundle) {
+      return null;
+    }
+
+    // Get transaction details if available
+    let transaction: GetTransactionReturnType | undefined = undefined;
+    
+    // Try to get transaction from tx1Hash
+    if (tx1Hash && tx1Hash !== "0x") {
+      try {
+        transaction = await this.publicClient.getTransaction({
+          hash: tx1Hash as Hex,
+        });
+      } catch (err) {
+        // Transaction not found on-chain yet
+        this.logger.debug(`Transaction ${tx1Hash} not found on-chain`);
+      }
+    }
+
+    return {
+      bundleHash: bundle.bundleHash,
+      tx1Hash: bundle.tx1Hash,
+      tx2Hash: bundle.tx2Hash,
+      builderAddress: bundle.builderAddress,
+      status: TransactionBundleStatus[bundle.status] || "Unknown",
+      blockNumber: transaction?.blockNumber,
+      blockHash: transaction?.blockHash,
+      transactionHash: transaction?.hash,
+      flashbotsBundleHash: bundle.bundleHash, // Flashbots bundleHash is stored in bundleHash field
+    };
   }
 }

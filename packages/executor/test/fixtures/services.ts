@@ -10,6 +10,7 @@ import {
   ReputationService,
   SubscriptionService,
   UserOpValidationService,
+  TransactionBundleService,
 } from "../../src/services";
 import { LocalDbController } from "../mocks/database";
 import { ChainId } from "../constants";
@@ -53,9 +54,16 @@ export async function getServices(
     logger
   );
 
+  const transactionBundleService = new TransactionBundleService(
+    db,
+    ChainId,
+    logger
+  );
+
   const skandha = new Skandha(
     mempoolService,
     entryPointService,
+    transactionBundleService,
     ChainId,
     provider,
     config,
@@ -83,7 +91,8 @@ export async function getServices(
     config,
     logger,
     null,
-    "classic"
+    "classic",
+    transactionBundleService
   );
 
   const eventsService = new EventsService(
@@ -92,6 +101,8 @@ export async function getServices(
     reputationService,
     mempoolService,
     entryPointService,
+    transactionBundleService,
+    provider,
     eventBus,
     db,
     logger
@@ -106,6 +117,7 @@ export async function getServices(
     mempoolService,
     bundlingService,
     entryPointService,
-    eventsService
+    eventsService,
+    transactionBundleService
   };
 }

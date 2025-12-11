@@ -1,20 +1,7 @@
 import { getAddress } from "viem";
 import { TransactionBundleStatus } from "@skandha/types/lib/executor";
 import { now } from "../utils";
-
-export interface ITransactionBundleEntry {
-  chainId: number;
-  bundleHash: string;
-  tx1Hash: string;
-  tx2Hash: string;
-  builderAddress: string;
-  status: TransactionBundleStatus;
-  transaction?: string;
-  submittedTime: number;
-  lastUpdatedTime: number;
-  submitAttempts: number;
-  revertReason?: string;
-}
+import { ITransactionBundleEntry } from "./interfaces";
 
 export interface TransactionBundleEntrySerialized {
   chainId: number;
@@ -22,12 +9,13 @@ export interface TransactionBundleEntrySerialized {
   tx1Hash: string;
   tx2Hash: string;
   builderAddress: string;
+  signedTx1: string;
   status: TransactionBundleStatus;
-  transaction?: string;
   submittedTime: number;
   lastUpdatedTime: number;
   submitAttempts: number;
   revertReason?: string;
+  maxBlock?: string; // Serialized as string for storage
 }
 
 export class TransactionBundleEntry implements ITransactionBundleEntry {
@@ -36,12 +24,13 @@ export class TransactionBundleEntry implements ITransactionBundleEntry {
   tx1Hash: string;
   tx2Hash: string;
   builderAddress: string;
+  signedTx1: string;
   status: TransactionBundleStatus;
-  transaction?: string;
   submittedTime: number;
   lastUpdatedTime: number;
   submitAttempts: number;
   revertReason?: string;
+  maxBlock?: bigint;
 
   constructor({
     chainId,
@@ -49,36 +38,40 @@ export class TransactionBundleEntry implements ITransactionBundleEntry {
     tx1Hash,
     tx2Hash,
     builderAddress,
+    signedTx1,
     status,
-    transaction,
     submittedTime,
     lastUpdatedTime,
     submitAttempts,
     revertReason,
+    maxBlock,
   }: {
     chainId: number;
     bundleHash: string;
     tx1Hash: string;
     tx2Hash: string;
     builderAddress: string;
+    signedTx1: string;
     status?: TransactionBundleStatus;
-    transaction?: string;
     submittedTime?: number;
     lastUpdatedTime?: number;
     submitAttempts?: number;
     revertReason?: string;
+    maxBlock?: bigint | string; // Accept string for deserialization
   }) {
     this.chainId = chainId;
     this.bundleHash = bundleHash;
     this.tx1Hash = tx1Hash;
     this.tx2Hash = tx2Hash;
     this.builderAddress = getAddress(builderAddress);
+    this.signedTx1 = signedTx1;
     this.status = status ?? TransactionBundleStatus.New;
-    this.transaction = transaction;
     this.submittedTime = submittedTime ?? now();
     this.lastUpdatedTime = lastUpdatedTime ?? now();
     this.submitAttempts = submitAttempts ?? 0;
     this.revertReason = revertReason;
+    // Handle maxBlock conversion from string (for deserialization) or bigint
+    this.maxBlock = typeof maxBlock === "string" ? BigInt(maxBlock) : maxBlock;
   }
 
   /**
@@ -87,7 +80,7 @@ export class TransactionBundleEntry implements ITransactionBundleEntry {
   setStatus(
     status: TransactionBundleStatus,
     params?: {
-      transaction?: string;
+      bundleHash?: string;
       revertReason?: string;
     }
   ): void {
@@ -95,15 +88,19 @@ export class TransactionBundleEntry implements ITransactionBundleEntry {
     this.lastUpdatedTime = now();
     switch (status) {
       case TransactionBundleStatus.Pending: {
-        this.transaction = params?.transaction;
+        if (params?.bundleHash) {
+          this.bundleHash = params.bundleHash;
+        }
         break;
       }
       case TransactionBundleStatus.Submitted: {
-        this.transaction = params?.transaction;
+        if (params?.bundleHash) {
+          this.bundleHash = params.bundleHash;
+        }
         break;
       }
       case TransactionBundleStatus.OnChain: {
-        this.transaction = params?.transaction;
+        // No need to update bundleHash, it's already set
         break;
       }
       case TransactionBundleStatus.Reverted: {
@@ -123,12 +120,13 @@ export class TransactionBundleEntry implements ITransactionBundleEntry {
       tx1Hash: this.tx1Hash,
       tx2Hash: this.tx2Hash,
       builderAddress: this.builderAddress,
+      signedTx1: this.signedTx1,
       status: this.status,
-      transaction: this.transaction,
       submittedTime: this.submittedTime,
       lastUpdatedTime: this.lastUpdatedTime,
       submitAttempts: this.submitAttempts,
       revertReason: this.revertReason,
+      maxBlock: this.maxBlock?.toString(),
     };
   }
 }

@@ -219,6 +219,7 @@ export class EntryPointV7EventsService {
       });
     }
 
+    // todo: fix this and save the last block number in the database for reliability
     // setInterval(() => {
     //   void this.pollEvents(this.publicClient);
     // }, this.pollingInterval);

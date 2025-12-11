@@ -3,13 +3,14 @@ import {
   GetConfigResponse,
   GetFeeHistoryResponse,
   GetGasPriceResponse,
+  TransactionBundleStatus,
 } from "@skandha/types/lib/api/interfaces";
 import RpcError from "@skandha/types/lib/api/errors/rpc-error";
 import * as RpcErrorCodes from "@skandha/types/lib/api/errors/rpc-error-codes";
 import { GasPriceMarkupOne } from "@skandha/params/lib";
 import { getGasFee } from "@skandha/params/lib";
 import { UserOperationStatus } from "@skandha/types/lib/api/interfaces";
-import { MempoolEntryStatus } from "@skandha/types/lib/executor";
+import { MempoolEntryStatus, TransactionBundleStatus as TransactionBundleStatusEnum } from "@skandha/types/lib/executor";
 import { UserOperation } from "@skandha/types/lib/contracts/UserOperation";
 import {
   Hex,
@@ -21,7 +22,7 @@ import {
 import { PackedUserOperation } from "@skandha/types/src/contracts/UserOperation";
 import { NetworkConfig } from "../interfaces";
 import { Config } from "../config";
-import { EntryPointService, MempoolService } from "../services";
+import { EntryPointService, MempoolService, TransactionBundleService } from "../services";
 import { EntryPointVersion } from "../services/EntryPointService/interfaces";
 import { unpackUserOp } from "../services/EntryPointService/utils";
 
@@ -34,6 +35,7 @@ export class Skandha {
   constructor(
     private mempoolService: MempoolService,
     private entryPointService: EntryPointService,
+    private transactionBundleService: TransactionBundleService,
     private chainId: number,
     private publicClient: PublicClient,
     private config: Config,
@@ -265,6 +267,33 @@ export class Skandha {
       status,
       reason,
       transaction,
+    };
+  }
+
+  async getTransactionBundleStatus(tx1Hash: string): Promise<TransactionBundleStatus> {
+    const bundle = await this.transactionBundleService.getBundleByTx1Hash(tx1Hash);
+    if (bundle == null) {
+      throw new RpcError(
+        "TransactionBundle not found",
+        RpcErrorCodes.INVALID_REQUEST
+      );
+    }
+
+    const status =
+      Object.keys(TransactionBundleStatusEnum).find(
+        (status) =>
+          bundle.status ===
+          TransactionBundleStatusEnum[status as keyof typeof TransactionBundleStatusEnum]
+      ) ?? "New";
+    const reason = bundle.revertReason;
+
+    return {
+      bundleHash: bundle.bundleHash,
+      tx1Hash: bundle.tx1Hash,
+      tx2Hash: bundle.tx2Hash,
+      builderAddress: bundle.builderAddress,
+      status,
+      reason,
     };
   }
 }

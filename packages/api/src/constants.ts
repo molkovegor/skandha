@@ -3,7 +3,9 @@ export const CustomRPCMethods = {
   skandha_config: "skandha_config",
   skandha_feeHistory: "skandha_feeHistory",
   skandha_userOperationStatus: "skandha_userOperationStatus",
+  skandha_transactionBundleStatus: "skandha_transactionBundleStatus",
   skandha_sendBundledTransaction: "skandha_sendBundledTransaction",
+  skandha_getTransactionBundleByHash: "skandha_getTransactionBundleByHash",
   skandha_subscribe: "skandha_subscribe",
   skandha_unsubscribe: "skandha_unsubscribe",
 };

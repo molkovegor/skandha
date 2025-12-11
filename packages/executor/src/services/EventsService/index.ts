@@ -3,17 +3,20 @@ import { PublicClient } from "viem";
 import { ReputationService } from "../ReputationService";
 import { MempoolService } from "../MempoolService";
 import { EntryPointService } from "../EntryPointService";
+import { TransactionBundleService } from "../TransactionBundleService/service";
 import { NetworkConfig } from "../../interfaces";
 import { ExecutorEventBus } from "../SubscriptionService";
 import {
   EntryPointV7EventsService,
   IEntryPointEventsService,
 } from "./versions";
+import { TransactionBundlePollingEventService } from "./TransactionBundleService/service";
 
 export class EventsService {
   private eventsService: {
     [address: string]: IEntryPointEventsService;
   } = {};
+  private transactionBundlePollingEventService?: TransactionBundlePollingEventService;
 
   constructor(
     private chainId: number,
@@ -21,6 +24,7 @@ export class EventsService {
     private reputationService: ReputationService,
     private mempoolService: MempoolService,
     private entryPointService: EntryPointService,
+    private transactionBundleService: TransactionBundleService,
     private publicClient: PublicClient,
     private eventBus: ExecutorEventBus,
     private db: IDbController,
@@ -43,5 +47,14 @@ export class EventsService {
       );
       this.eventsService[address].initEventListener();
     }
+
+    // Initialize transaction bundle polling service
+    this.transactionBundlePollingEventService = new TransactionBundlePollingEventService(
+      this.transactionBundleService,
+      this.publicClient,
+      this.logger,
+      this.networkConfig.pollingInterval
+    );
+    this.transactionBundlePollingEventService.initEventListener();
   }
 }

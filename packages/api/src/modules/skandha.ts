@@ -4,6 +4,7 @@ import {
   GetFeeHistoryResponse,
   GetGasPriceResponse,
   UserOperationStatus,
+  TransactionBundleStatus,
 } from "@skandha/types/lib/api/interfaces";
 import { Skandha } from "@skandha/executor/lib/modules";
 import RpcError from "@skandha/types/lib/api/errors/rpc-error";
@@ -20,6 +21,14 @@ export class SkandhaAPI {
    */
   async getUserOperationStatus(hash: string): Promise<UserOperationStatus> {
     return this.skandhaModule.getUserOperationStatus(hash);
+  }
+
+  /**
+   * @params tx1Hash hash of tx1 (transaction bundle identifier)
+   * @returns status
+   */
+  async getTransactionBundleStatus(tx1Hash: string): Promise<TransactionBundleStatus> {
+    return this.skandhaModule.getTransactionBundleStatus(tx1Hash);
   }
 
   /**

@@ -17,7 +17,7 @@ import { Bundle, NetworkConfig } from "../../../interfaces";
 import { MempoolService } from "../../MempoolService";
 import { ReputationService } from "../../ReputationService";
 import { estimateBundleGasLimit } from "../utils";
-import { Relayer } from "../interfaces";
+import { Relayer, TransactionBundleResult } from "../interfaces";
 import { ExecutorEventBus } from "../../SubscriptionService";
 import { EntryPointService } from "../../EntryPointService";
 import { getAuthorizationList } from "../utils/eip7702";
@@ -174,7 +174,7 @@ export class FlashbotsRelayer extends BaseRelayer {
     });
   }
 
-  async sendTransactionBundle(signedTx1: string, builderAddress: string): Promise<string> {
+  async sendTransactionBundle(signedTx1: string, builderAddress: string): Promise<TransactionBundleResult> {
     const availableIndex = this.getAvailableRelayerIndex();
     if (availableIndex == null) {
       throw new Error("No available relayers");
@@ -187,7 +187,7 @@ export class FlashbotsRelayer extends BaseRelayer {
       throw new Error("Relayer account not available");
     }
 
-    return await mutex.runExclusive(async (): Promise<string> => {
+    return await mutex.runExclusive(async (): Promise<TransactionBundleResult> => {
       // Parse tx1 to get gas info
       const tx1 = parseTransaction(signedTx1 as Hex);
       const tx1GasLimit = tx1.gas ?? BigInt(21000);
@@ -293,7 +293,7 @@ export class FlashbotsRelayer extends BaseRelayer {
         this.logger.debug(
           `Flashbots: Transaction bundle accepted with bundleHash=${bundleHash}, tx2Hash=${tx2Hash}, targetBlock=${targetBlock}`
         );
-        return bundleHash;
+        return { bundleHash, tx2Hash };
       } catch (err) {
         this.logger.error(err, "Flashbots: Error submitting transaction bundle");
         throw err;

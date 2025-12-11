@@ -6,3 +6,4 @@ export * from "./P2PService";
 export * from "./EntryPointService";
 export * from "./EventsService";
 export * from "./SubscriptionService";
+export * from "./TransactionBundleService/service";

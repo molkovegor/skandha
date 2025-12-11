@@ -296,6 +296,9 @@ export class ApiApp {
         case BundlerRPCMethods.eth_getUserOperationByHash:
           result = await this.ethApi.getUserOperationByHash(params[0]);
           break;
+        case CustomRPCMethods.skandha_getTransactionBundleByHash:
+          result = await this.ethApi.getTransactionBundleByHash(params[0]);
+          break;
         case BundlerRPCMethods.web3_clientVersion:
           result = this.web3Api.clientVersion();
           break;
@@ -315,6 +318,9 @@ export class ApiApp {
           return { jsonrpc, id, result };
         case CustomRPCMethods.skandha_userOperationStatus:
           result = await this.skandhaApi.getUserOperationStatus(params[0]);
+          break;
+        case CustomRPCMethods.skandha_transactionBundleStatus:
+          result = await this.skandhaApi.getTransactionBundleStatus(params[0]);
           break;
         case CustomRPCMethods.skandha_sendBundledTransaction:
           result = await this.ethApi.sendBundledTransaction({

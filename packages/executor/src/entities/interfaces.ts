@@ -2,6 +2,7 @@ import { UserOperation } from "@skandha/types/lib/contracts/UserOperation";
 import {
   MempoolEntryStatus,
   ReputationStatus,
+  TransactionBundleStatus,
 } from "@skandha/types/lib/executor";
 
 type BigNumberish = bigint | number | `0x${string}` | `${number}` | string;
@@ -60,3 +61,18 @@ export type ReputationEntrySerialized = Omit<
   IReputationEntry,
   "address" | "chainId"
 >;
+
+export interface ITransactionBundleEntry {
+  chainId: number;
+  bundleHash: string;
+  tx1Hash: string;
+  tx2Hash: string;
+  builderAddress: string;
+  signedTx1: string; // Store the signed transaction for later submission
+  status: TransactionBundleStatus;
+  submittedTime: number;
+  lastUpdatedTime: number;
+  submitAttempts: number;
+  revertReason?: string;
+  maxBlock?: bigint; // Maximum block number for bundle inclusion
+}

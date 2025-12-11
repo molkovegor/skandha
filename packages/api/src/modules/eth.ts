@@ -3,6 +3,7 @@ import {
   EstimatedUserOperationGas,
   UserOperationByHashResponse,
   UserOperationReceipt,
+  TransactionBundleByHashResponse,
 } from "@skandha/types/lib/api/interfaces";
 import { RpcMethodValidator } from "../utils/RpcMethodValidator";
 import { SendUserOperationGasArgs } from "../dto/SendUserOperation.dto";
@@ -95,5 +96,16 @@ export class EthAPI {
   @RpcMethodValidator(SendBundledTransactionArgs)
   async sendBundledTransaction(args: SendBundledTransactionArgs): Promise<string> {
     return await this.ethModule.sendBundledTransaction(args.transaction, args.builderAddress);
+  }
+
+  /**
+   * Get transaction bundle by tx1Hash (similar to getUserOperationByHash)
+   * @param tx1Hash transaction hash of tx1
+   * @returns transaction bundle information or null if not found
+   */
+  async getTransactionBundleByHash(
+    tx1Hash: string
+  ): Promise<TransactionBundleByHashResponse | null> {
+    return await this.ethModule.getTransactionBundleByHash(tx1Hash);
   }
 }

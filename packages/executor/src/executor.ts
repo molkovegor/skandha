@@ -15,6 +15,7 @@ import {
   EventsService,
   ExecutorEventBus,
   SubscriptionService,
+  TransactionBundleService,
 } from "./services";
 import { Config } from "./config";
 import { BundlingMode, GetNodeAPI, NetworkConfig } from "./interfaces";
@@ -109,9 +110,16 @@ export class Executor {
       this.logger
     );
 
+    const transactionBundleService = new TransactionBundleService(
+      this.db,
+      this.chainId,
+      this.logger
+    );
+
     this.skandha = new Skandha(
       this.mempoolService,
       this.entryPointService,
+      transactionBundleService,
       this.chainId,
       this.publicClient,
       this.config,
@@ -134,6 +142,7 @@ export class Executor {
       this.reputationService,
       this.mempoolService,
       this.entryPointService,
+      transactionBundleService,
       this.publicClient,
       this.eventBus,
       this.db,
@@ -151,7 +160,8 @@ export class Executor {
       this.config,
       this.logger,
       this.metrics,
-      this.networkConfig.relayingMode
+      this.networkConfig.relayingMode,
+      transactionBundleService
     );
 
     this.web3 = new Web3(this.config, this.version);
@@ -175,7 +185,8 @@ export class Executor {
       this.logger,
       this.metrics,
       this.getNodeApi,
-      this.bundlingService
+      this.bundlingService,
+      transactionBundleService
     );
 
     this.p2pService = new P2PService(

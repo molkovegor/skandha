@@ -14,6 +14,7 @@ export async function getModules(config: Config, networkConfig: NetworkConfig) {
     bundlingService,
     entryPointService,
     skandha,
+    transactionBundleService,
   } = await getServices(config, networkConfig);
 
   const web3 = new Web3(config, {
@@ -38,7 +39,9 @@ export async function getModules(config: Config, networkConfig: NetworkConfig) {
     networkConfig,
     logger,
     null, // metrics
-    undefined // INodeAPI
+    undefined, // INodeAPI
+    bundlingService,
+    transactionBundleService
   );
 
   return {
