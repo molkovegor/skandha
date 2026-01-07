@@ -32,6 +32,13 @@
 | [Chains supported](https://etherspot.fyi/prime-sdk/chains-supported)
 | [UserOp Fee history](https://etherspot.fyi/skandha/feehistory)
 
+## 🔄 Fork Changes
+
+- **Flashbots Transaction Bundling** - Added support for Flashbots Builder API transaction bundling flow with transaction forging on the bundler side and leveraging `mev_sendBundle` API on Flashbots side, including bundle submission, inclusion tracking, and status monitoring
+- **Flashbots User Operations Support** - Implemented Flashbots relaying mode for user operations bundling via `mev_sendBundle` API with automatic inclusion tracking and status management
+- **Status Tracking** - Implemented transaction bundle status tracking via `skandha_getTransactionBundleStatus` RPC method
+- **Zero Priority Fee Requirement** - Transactions must have zero `maxPriorityFeePerGas` when using Flashbots relaying mode (required for compliant bundle inclusion)
+
 ## ⚙️ How to run (from Source code)
 
 Run with one-liner:
